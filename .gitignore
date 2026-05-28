@@ -1,0 +1,33 @@
+# Build output
+build/
+out/
+
+# Temp alias folders created by the app
+.vc_temp/
+
+# User-specific settings (runtime generated)
+settings.ini
+imgui.ini
+
+# Visual Studio
+.vs/
+*.user
+*.VC.db
+*.VC.opendb
+*.suo
+*.sdf
+*.opensdf
+*.aps
+
+# Object files / intermediate
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.iobj
+*.ipdb
+
+# Windows
+Thumbs.db
+Desktop.ini
