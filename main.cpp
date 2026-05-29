@@ -1,5 +1,5 @@
 // ==========================================================================
-// V.I.C - Video Image Comparator v2.1
+// V.I.C - Video Image Comparator v2.2
 // Based on Video Comparator v2.0 (stable)
 // + NEW: Cinema mode (F10) — hides UI to show only the player
 // + NEW: ROI / Crop — draw a rectangle to limit metrics to a zone
@@ -1206,7 +1206,7 @@ int main(){
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
     SDL_Init(SDL_INIT_VIDEO); TTF_Init();
-    SDL_Window*win=SDL_CreateWindow("V.I.C - Video Image Comparator v2.1",saved_win_x,saved_win_y,saved_win_w,saved_win_h,SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
+    SDL_Window*win=SDL_CreateWindow("V.I.C - Video Image Comparator v2.2",saved_win_x,saved_win_y,saved_win_w,saved_win_h,SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
     if(!win){ SDL_Log("SDL_CreateWindow failed: %s", SDL_GetError()); return 1; }
     if(saved_win_maximized) SDL_MaximizeWindow(win);
 #ifdef _WIN32
@@ -1434,7 +1434,7 @@ int main(){
                 ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + 550.0f); 
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0,0,0,1));
                 ImGui::SetWindowFontScale(1.2f);
-                ImGui::Text("V.I.C - Video Image Comparator v2.1");
+                ImGui::Text("V.I.C - Video Image Comparator v2.2");
                 ImGui::SetWindowFontScale(1.0f);
                 ImGui::Dummy(ImVec2(0, 5));
                 ImGui::TextWrapped(T(
