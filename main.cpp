@@ -113,7 +113,7 @@ static GLuint tex_about = 0; static int about_w=0, about_h=0;
 static int tex_sub_w=0, tex_sub_h=0;
 
 double mse=0, psnr=0, ssim=0;
-std::deque<float> psnrHist, ssimHist;
+std::vector<float> psnrHist, ssimHist;
 
 std::string path1;
 std::string path2;
@@ -743,7 +743,7 @@ static void computeMetrics(){
     mse = (m[0]+m[1]+m[2])/3.0; psnr = (mse>1e-10) ? 10.0*log10((255.0*255.0)/mse) : 99.0;
     ssim = SSIM(r1,r2);
     psnrHist.push_back((float)psnr); ssimHist.push_back((float)ssim);
-    if(psnrHist.size()>200){ psnrHist.pop_front(); ssimHist.pop_front(); }
+    if(psnrHist.size()>200){ psnrHist.erase(psnrHist.begin()); ssimHist.erase(ssimHist.begin()); }
 }
 static void readCPUAt(cv::VideoCapture& capCPU, int idx, cv::Mat& out){
     if(!capCPU.isOpened()) return;
