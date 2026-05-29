@@ -81,6 +81,10 @@ std::deque<std::pair<std::string, std::string>> recent_files;
 // NEW: Cinema mode (hides UI to show only the player)
 bool cinema_mode = false;
 
+// ───────────────────── LANGUAGE ─────────────────────
+bool lang_en = false;
+static inline const char* T(const char* fr, const char* en) { return lang_en ? en : fr; }
+
 // NEW: Sync offset (manual frame offset for videos that don't start at the same moment)
 int sync_offset_frames = 0;  // Added to frame2 when syncing from frame1
 
@@ -428,6 +432,7 @@ static void saveIni(){
     f << "win_w=" << saved_win_w << "\n";
     f << "win_h=" << saved_win_h << "\n";
     f << "win_maximized=" << (saved_win_maximized ? 1 : 0) << "\n";
+    f << "lang_en=" << (lang_en ? 1 : 0) << "\n";
     int i = 0;
     for(const auto& [p1, p2] : recent_files) {
         f << "recent" << i << "_l=" << p1 << "\n";
@@ -475,6 +480,7 @@ static void loadIni(){
         saved_win_w = getInt("win_w", 1600);
         saved_win_h = getInt("win_h", 900);
         saved_win_maximized = !!getInt("win_maximized", 0);
+        lang_en = !!getInt("lang_en", 0);
         // Load recent files
         auto getStr = [&](const std::string& key) -> std::string {
             auto it = kv.find(key); return it != kv.end() ? it->second : "";
@@ -1335,13 +1341,13 @@ int main(){
         ImGui::Begin("Main",nullptr,mainFlags);
 
         if(!cinema_mode && ImGui::BeginMenuBar()){
-            if(ImGui::BeginMenu("Fichier")){
-                if(ImGui::MenuItem("Média 1...")) fileDlg(path1); Tip("Choisir le média gauche (vidéo ou image)");
-                if(ImGui::MenuItem("Média 2...")) fileDlg(path2); Tip("Choisir le média droit (vidéo ou image)");
-                if(ImGui::MenuItem("Recharger")) { if(!path1.empty() && !path2.empty()) StartLoading(path1, path2); }
+            if(ImGui::BeginMenu(T("Fichier","File"))){
+                if(ImGui::MenuItem(T("Média 1...","Media 1..."))) fileDlg(path1); Tip(T("Choisir le média gauche (vidéo ou image)","Choose left media (video or image)"));
+                if(ImGui::MenuItem(T("Média 2...","Media 2..."))) fileDlg(path2); Tip(T("Choisir le média droit (vidéo ou image)","Choose right media (video or image)"));
+                if(ImGui::MenuItem(T("Recharger","Reload"))) { if(!path1.empty() && !path2.empty()) StartLoading(path1, path2); }
                 ImGui::Separator();
-                if(ImGui::BeginMenu("Fichiers récents")) {
-                    if(recent_files.empty()) { ImGui::TextDisabled("(aucun)"); }
+                if(ImGui::BeginMenu(T("Fichiers récents","Recent files"))) {
+                    if(recent_files.empty()) { ImGui::TextDisabled(T("(aucun)","(none)")); }
                     else {
                         int ri = 0;
                         for(const auto& [rp1, rp2] : recent_files) {
@@ -1350,58 +1356,63 @@ int main(){
                             ++ri;
                         }
                         ImGui::Separator();
-                        if(ImGui::MenuItem("Effacer l'historique")) { recent_files.clear(); saveIni(); }
+                        if(ImGui::MenuItem(T("Effacer l'historique","Clear history"))) { recent_files.clear(); saveIni(); }
                     }
                     ImGui::EndMenu();
                 }
                 ImGui::Separator();
-                if(ImGui::MenuItem("Quitter")) done=true; Tip("Fermer l'application");
+                if(ImGui::MenuItem(T("Quitter","Quit"))) done=true; Tip(T("Fermer l'application","Close the application"));
                 ImGui::EndMenu();
             }
             if(ImGui::BeginMenu("Options")){
-                if(ImGui::MenuItem("Vitesse originale",nullptr,use_original_fps)){ use_original_fps=!use_original_fps; saveIni(); StartLoading(path1, path2); } Tip("Lire aux FPS d'origine (sinon 30 FPS)");
-                if(ImGui::MenuItem("VSync", nullptr, vsync_enabled)){ vsync_enabled=!vsync_enabled; saveIni(); SDL_GL_SetSwapInterval(vsync_enabled?1:0); } Tip("Synchroniser le swap avec l'écran");
-                if(ImGui::MenuItem("Afficher Console", nullptr, show_console)){ show_console=!show_console; ToggleConsole(show_console); saveIni(); } Tip("Afficher/Masquer la fenêtre de commande");
-                if(ImGui::MenuItem("Métriques (PSNR/SSIM)",nullptr,metrics_on)){ metrics_on=!metrics_on; saveIni(); } Tip("Activer l'affichage PSNR/SSIM/MSE");
+                if(ImGui::MenuItem(T("Vitesse originale","Original speed"),nullptr,use_original_fps)){ use_original_fps=!use_original_fps; saveIni(); StartLoading(path1, path2); } Tip(T("Lire aux FPS d'origine (sinon 30 FPS)","Play at original FPS (else 30 FPS)"));
+                if(ImGui::MenuItem("VSync", nullptr, vsync_enabled)){ vsync_enabled=!vsync_enabled; saveIni(); SDL_GL_SetSwapInterval(vsync_enabled?1:0); } Tip(T("Synchroniser le swap avec l'écran","Synchronize swap with screen"));
+                if(ImGui::MenuItem(T("Afficher Console","Show Console"), nullptr, show_console)){ show_console=!show_console; ToggleConsole(show_console); saveIni(); } Tip(T("Afficher/Masquer la fenêtre de commande","Show/Hide command window"));
+                if(ImGui::MenuItem(T("Métriques (PSNR/SSIM)","Metrics (PSNR/SSIM)"),nullptr,metrics_on)){ metrics_on=!metrics_on; saveIni(); } Tip(T("Activer l'affichage PSNR/SSIM/MSE","Enable PSNR/SSIM/MSE display"));
                 if(ImGui::BeginMenu("HW selector")){
                     bool auto_hw = (hw_backend == HWBackend::AUTO);
                     bool dxva = (hw_backend == HWBackend::DSHOW_DXVA2);
                     bool cpu = (hw_backend == HWBackend::CPU_FFMPEG);
-                    if(ImGui::MenuItem("AUTO (Prio FFMPEG -> Fallback DSHOW)", nullptr, auto_hw)){ hw_backend = HWBackend::AUTO; saveIni(); StartLoading(path1, path2); }
+                    if(ImGui::MenuItem("AUTO (FFMPEG -> DSHOW fallback)", nullptr, auto_hw)){ hw_backend = HWBackend::AUTO; saveIni(); StartLoading(path1, path2); }
                     if(ImGui::MenuItem("Force DirectShow/DXVA2", nullptr, dxva)){ hw_backend = HWBackend::DSHOW_DXVA2; saveIni(); StartLoading(path1, path2); }
                     if(ImGui::MenuItem("Force CPU/FFMPEG", nullptr, cpu)){ hw_backend = HWBackend::CPU_FFMPEG; saveIni(); StartLoading(path1, path2); }
                     ImGui::EndMenu();
                 }
-                if(ImGui::MenuItem("Raccourcis...")) show_rebinding = true; Tip("Modifier les touches");
+                if(ImGui::MenuItem(T("Raccourcis...","Shortcuts..."))) show_rebinding = true; Tip(T("Modifier les touches","Modify key bindings"));
                 ImGui::Separator();
-                if(ImGui::BeginMenu("Mode Sync")) {
-                    if(ImGui::MenuItem("Timestamp (recommandé)", nullptr, sync_mode==SyncMode::TIMESTAMP)) { sync_mode=SyncMode::TIMESTAMP; saveIni(); }
-                    Tip("Synchronise par temps — idéal quand les FPS diffèrent");
+                if(ImGui::BeginMenu(T("Mode Sync","Sync Mode"))) {
+                    if(ImGui::MenuItem(T("Timestamp (recommandé)","Timestamp (recommended)"), nullptr, sync_mode==SyncMode::TIMESTAMP)) { sync_mode=SyncMode::TIMESTAMP; saveIni(); }
+                    Tip(T("Synchronise par temps — idéal quand les FPS diffèrent","Sync by time — ideal when FPS differ"));
                     if(ImGui::MenuItem("Frame Index", nullptr, sync_mode==SyncMode::FRAME_INDEX)) { sync_mode=SyncMode::FRAME_INDEX; saveIni(); }
-                    Tip("Synchronise par numéro de frame");
+                    Tip(T("Synchronise par numéro de frame","Sync by frame number"));
                     ImGui::Separator();
-                    ImGui::Text("Offset (frames) :");
+                    ImGui::Text(T("Offset (frames) :","Offset (frames):"));
                     ImGui::SetNextItemWidth(120);
                     if(ImGui::InputInt("##sync_offset", &sync_offset_frames, 1, 10)) { saveIni(); updateFrame(); }
-                    Tip("Décalage appliqué à la vidéo 2 (positif = en avance)");
+                    Tip(T("Décalage appliqué à la vidéo 2 (positif = en avance)","Offset applied to video 2 (positive = ahead)"));
                     if(ImGui::Button("Reset offset")) { sync_offset_frames = 0; saveIni(); updateFrame(); }
                     ImGui::EndMenu();
                 }
-                if(ImGui::BeginMenu("ROI (zone métriques)")) {
-                    if(ImGui::MenuItem("Activer ROI", nullptr, roi_enabled)) { roi_enabled = !roi_enabled; }
-                    Tip("Limite PSNR/SSIM/heatmap à une zone");
-                    if(ImGui::MenuItem("Dessiner ROI (clic-glisser)")) { roi_editing = true; }
-                    Tip("Clique-glisse sur la vidéo pour définir la zone");
+                if(ImGui::BeginMenu(T("ROI (zone métriques)","ROI (metrics zone)"))) {
+                    if(ImGui::MenuItem(T("Activer ROI","Enable ROI"), nullptr, roi_enabled)) { roi_enabled = !roi_enabled; }
+                    Tip(T("Limite PSNR/SSIM/heatmap à une zone","Limit PSNR/SSIM/heatmap to a zone"));
+                    if(ImGui::MenuItem(T("Dessiner ROI (clic-glisser)","Draw ROI (click-drag)"))) { roi_editing = true; }
+                    Tip(T("Clique-glisse sur la vidéo pour définir la zone","Click-drag on the video to define the zone"));
                     if(ImGui::MenuItem("Reset ROI (R)")) { resetRoi(); }
                     ImGui::EndMenu();
                 }
-                if(ImGui::MenuItem("Plein écran (F11)", nullptr, fullscreen)) { toggleFullscreen(win); }
-                if(ImGui::MenuItem("Mode Cinéma (F10)", nullptr, cinema_mode)) { toggleCinema(); }
-                Tip("Cache l'UI pour ne montrer que le lecteur");
+                if(ImGui::MenuItem(T("Plein écran (F11)","Fullscreen (F11)"), nullptr, fullscreen)) { toggleFullscreen(win); }
+                if(ImGui::MenuItem(T("Mode Cinéma (F10)","Cinema Mode (F10)"), nullptr, cinema_mode)) { toggleCinema(); }
+                Tip(T("Cache l'UI pour ne montrer que le lecteur","Hide UI to show only the player"));
                 ImGui::EndMenu();
             }
-            if(ImGui::BeginMenu("À propos")){
-                if(ImGui::MenuItem("À propos")){ about_open=true; }
+            if(ImGui::BeginMenu("Language")){
+                if(ImGui::MenuItem("Français", nullptr, !lang_en)){ lang_en = false; saveIni(); }
+                if(ImGui::MenuItem("English",  nullptr,  lang_en)){ lang_en = true;  saveIni(); }
+                ImGui::EndMenu();
+            }
+            if(ImGui::BeginMenu(T("À propos","About"))){
+                if(ImGui::MenuItem(T("À propos","About"))){ about_open=true; }
                 ImGui::EndMenu();
             }
             ImGui::EndMenuBar();
@@ -1409,7 +1420,7 @@ int main(){
 
         if (about_open) {
             ImGui::SetNextWindowSize(ImVec2(820, 600), ImGuiCond_FirstUseEver);
-            if (ImGui::Begin("A propos - V.I.C", &about_open, ImGuiWindowFlags_NoCollapse|ImGuiWindowFlags_NoScrollbar)) {
+            if (ImGui::Begin(T("A propos - V.I.C","About - V.I.C"), &about_open, ImGuiWindowFlags_NoCollapse|ImGuiWindowFlags_NoScrollbar)) {
                 if (!tex_about) { loadAboutTex(); }
                 if (tex_about) {
                     ImGui::GetWindowDrawList()->AddImage((ImTextureID)(intptr_t)tex_about, ImGui::GetWindowPos(), {ImGui::GetWindowPos().x+ImGui::GetWindowSize().x, ImGui::GetWindowPos().y+ImGui::GetWindowSize().y}, {0,0}, {1,1}, IM_COL32(255,255,255,153));
@@ -1426,16 +1437,18 @@ int main(){
                 ImGui::Text("V.I.C - Video Image Comparator v2.1");
                 ImGui::SetWindowFontScale(1.0f);
                 ImGui::Dummy(ImVec2(0, 5));
-                ImGui::TextWrapped("Outil de comparaison video et image professionnel pour analyser les differences de qualite entre deux sources (encodages, restaurations, filtres, etc.).");
-                ImGui::TextWrapped("Fonctionnalites : Side-by-Side, Overlay, Blink, Click, Heatmap, PSNR/SSIM temps reel, ROI, Sync multi-fps, Cinema mode.");
+                ImGui::TextWrapped(T(
+                    "Outil de comparaison video et image professionnel pour analyser les differences de qualite entre deux sources (encodages, restaurations, filtres, etc.).",
+                    "Professional video and image comparison tool to analyze quality differences between two sources (encodes, restorations, filters, etc.)."));
+                ImGui::TextWrapped("Features: Side-by-Side, Overlay, Blink, Click, Heatmap, PSNR/SSIM, ROI, Multi-fps Sync, Cinema mode.");
                 ImGui::Separator();
-                ImGui::Text("Crédits :");
+                ImGui::Text(T("Crédits :","Credits:"));
                 ImGui::BulletText("Concept & Direction : Crysisjim");
-                ImGui::BulletText("Grok 4.0 : 60%% (Base du code & Architecture)");
-                ImGui::BulletText("ChatGPT 5 : 20%% (Amélioration & Optimisation)");
-                ImGui::BulletText("Gemini 3 Pro : 20%% (Finalisation & Corrections)");
+                ImGui::BulletText("Grok 4.0 : 60%% (Code base & Architecture)");
+                ImGui::BulletText("ChatGPT 5 : 20%% (Improvements & Optimization)");
+                ImGui::BulletText("Gemini 3 Pro : 20%% (Finalization & Corrections)");
                 ImGui::Dummy(ImVec2(0, 8));
-                ImGui::Text("Stack Technique :");
+                ImGui::Text(T("Stack Technique :","Tech Stack:"));
                 ImGui::TextWrapped("C++20, OpenGL 3.3, ImGui, SDL2, OpenCV 4.x (FFMPEG/DSHOW)");
                 ImGui::PopStyleColor();
                 ImGui::PopTextWrapPos();
@@ -1449,15 +1462,15 @@ int main(){
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(),ImGuiCond_Always,{.5f,.5f});
         if(ImGui::BeginPopupModal("Load",nullptr,ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize)){
             if(need_close_load_popup){ ImGui::CloseCurrentPopup(); need_close_load_popup=false; }
-            ImGui::TextWrapped("Sélectionnez deux médias (vidéo ou image), ou glissez-déposez.");
-            
+            ImGui::TextWrapped(T("Sélectionnez deux médias (vidéo ou image), ou glissez-déposez.","Select two media files (video or image), or drag & drop."));
+
             // FIX: Safe buffer copy instead of const_cast UB
             char buf1[1024]; strncpy(buf1, path1.c_str(), sizeof(buf1)-1); buf1[sizeof(buf1)-1]=0;
             char buf2[1024]; strncpy(buf2, path2.c_str(), sizeof(buf2)-1); buf2[sizeof(buf2)-1]=0;
-            ImGui::InputText("Média 1", buf1, sizeof(buf1), ImGuiInputTextFlags_ReadOnly); ImGui::SameLine(); if(ImGui::Button("...##1")) fileDlg(path1);
-            ImGui::InputText("Média 2", buf2, sizeof(buf2), ImGuiInputTextFlags_ReadOnly); ImGui::SameLine(); if(ImGui::Button("...##2")) fileDlg(path2);
-            
-            if(ImGui::Button("CHARGER",ImVec2(-1,40))){ addRecent(path1, path2); StartLoading(path1, path2); popup=false; need_close_load_popup=true; ImGui::CloseCurrentPopup(); }
+            ImGui::InputText(T("Média 1","Media 1"), buf1, sizeof(buf1), ImGuiInputTextFlags_ReadOnly); ImGui::SameLine(); if(ImGui::Button("...##1")) fileDlg(path1);
+            ImGui::InputText(T("Média 2","Media 2"), buf2, sizeof(buf2), ImGuiInputTextFlags_ReadOnly); ImGui::SameLine(); if(ImGui::Button("...##2")) fileDlg(path2);
+
+            if(ImGui::Button(T("CHARGER","LOAD"),ImVec2(-1,40))){ addRecent(path1, path2); StartLoading(path1, path2); popup=false; need_close_load_popup=true; ImGui::CloseCurrentPopup(); }
             ImGui::EndPopup();
         }
 
@@ -1465,8 +1478,8 @@ int main(){
             ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, {0.5f, 0.5f});
             ImGui::SetNextWindowSize({200, 100}, ImGuiCond_Always);
             ImGui::Begin("LoadingOverlay", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoInputs);
-            ImGui::SetCursorPos({(ImGui::GetWindowSize().x - ImGui::CalcTextSize("Chargement...").x) * 0.5f, 20});
-            ImGui::Text("Chargement...");
+            ImGui::SetCursorPos({(ImGui::GetWindowSize().x - ImGui::CalcTextSize(T("Chargement...","Loading...")).x) * 0.5f, 20});
+            ImGui::Text("%s", T("Chargement...","Loading..."));
             ImDrawList* dl = ImGui::GetWindowDrawList();
             ImVec2 center(ImGui::GetCursorScreenPos().x + (ImGui::GetWindowSize().x * 0.5f) - 20 + 20, ImGui::GetCursorScreenPos().y + 10 + 20);
             // FIX: Spinner now has animated opacity per dot
@@ -1533,7 +1546,7 @@ int main(){
                 ImGui::TableSetColumnIndex(0); if (FrameRowHalf("f1", frame1_idx, tot1, false, 24.0f)) { if (linked) frame2_idx = syncedFrame2FromFrame1(frame1_idx); updateFrame(); }
                 ImGui::TableSetColumnIndex(1); 
                 ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2.0f);
-                if (ImGui::Button(linked ? "LINKED" : "UNLINKED")) { linked = !linked; saveIni(); } Tip("Verrouille les deux timelines");
+                if (ImGui::Button(linked ? "LINKED" : "UNLINKED")) { linked = !linked; saveIni(); } Tip(T("Verrouille les deux timelines","Lock both timelines"));
                 ImGui::TableSetColumnIndex(2); if (FrameRowHalf("f2", frame2_idx, tot2, true, 24.0f)) { if (linked) frame1_idx = syncedFrame1FromFrame2(frame2_idx); updateFrame(); }
                 ImGui::EndTable();
             }
@@ -1549,7 +1562,7 @@ int main(){
                 float tw = ImGui::CalcTextSize(syncLabel).x;
                 ImGui::SetCursorPosX((ImGui::GetContentRegionAvail().x - tw) * 0.5f);
                 ImGui::TextDisabled("%s", syncLabel);
-                Tip("Options > Mode Sync pour changer / ajuster l'offset");
+                Tip(T("Options > Mode Sync pour changer / ajuster l'offset","Options > Sync Mode to change / adjust offset"));
             }
 
             float totalW = ActionsRowWidth();
@@ -1557,10 +1570,10 @@ int main(){
             ImGui::Dummy(ImVec2(startX,0)); ImGui::SameLine();
 
             bool v;
-            v=(view_mode==VM_SUB); if(ImGui::Checkbox("Sub",&v)){ view_mode=v?VM_SUB:VM_NONE; if(view_mode==VM_SUB) makeSubTex(frame1,frame2);} Tip("Heatmap (différences)"); ImGui::SameLine();
-            v=(view_mode==VM_OVERLAY); if(ImGui::Checkbox("Overlay",&v)){ view_mode=v?VM_OVERLAY:VM_NONE; } Tip("Superposer R sur L"); ImGui::SameLine();
-            v=(view_mode==VM_BLINK); if(ImGui::Checkbox("Blink",&v)){ view_mode=v?VM_BLINK:VM_NONE; } Tip("Clignoter L/R"); ImGui::SameLine();
-            v=(view_mode==VM_CLICK); if(ImGui::Checkbox("Click",&v)){ view_mode=v?VM_CLICK:VM_NONE; } Tip("Basculer L/R au clic"); ImGui::SameLine();
+            v=(view_mode==VM_SUB); if(ImGui::Checkbox("Sub",&v)){ view_mode=v?VM_SUB:VM_NONE; if(view_mode==VM_SUB) makeSubTex(frame1,frame2);} Tip(T("Heatmap (différences)","Heatmap (differences)")); ImGui::SameLine();
+            v=(view_mode==VM_OVERLAY); if(ImGui::Checkbox("Overlay",&v)){ view_mode=v?VM_OVERLAY:VM_NONE; } Tip(T("Superposer R sur L","Overlay R on L")); ImGui::SameLine();
+            v=(view_mode==VM_BLINK); if(ImGui::Checkbox("Blink",&v)){ view_mode=v?VM_BLINK:VM_NONE; } Tip(T("Clignoter L/R","Blink L/R")); ImGui::SameLine();
+            v=(view_mode==VM_CLICK); if(ImGui::Checkbox("Click",&v)){ view_mode=v?VM_CLICK:VM_NONE; } Tip(T("Basculer L/R au clic","Toggle L/R on click")); ImGui::SameLine();
 
             if (CirclePlayButton("play_btn", 16.0f)) { 
                 playing=!playing; 
@@ -1572,17 +1585,17 @@ int main(){
             }
             ImGui::SameLine();
             ImGui::Text("Speed"); ImGui::SameLine(); ImGui::SetNextItemWidth(110);
-            if(ImGui::Combo("##spd",&spIdx,speedLbls,IM_ARRAYSIZE(speedLbls))){ playback_speed=speedVals[spIdx]; saveIni(); } Tip("Vitesse de lecture");
+            if(ImGui::Combo("##spd",&spIdx,speedLbls,IM_ARRAYSIZE(speedLbls))){ playback_speed=speedVals[spIdx]; saveIni(); } Tip(T("Vitesse de lecture","Playback speed"));
             ImGui::SameLine();
-            if(ImGui::Button("Reset frame")){ frame1_idx=frame2_idx=0; updateFrame(); } Tip("Revenir au début"); ImGui::SameLine();
-            if(ImGui::Button("Reset zoom")){ zoom_l=zoom_r=1.f; center_l=center_r={.5f,.5f}; } Tip("Réinitialiser zoom/pan"); ImGui::SameLine();
-            if(ImGui::Button(zoom_linked ? "Link Zoom: ON" : "Link Zoom: OFF")) { zoom_linked = !zoom_linked; saveIni(); } Tip("Lier Zoom et Panoramique"); ImGui::SameLine();
-            
-            if(ImGui::Button(metrics_on?"Métriques: ON":"Métriques: OFF")){ metrics_on=!metrics_on; saveIni(); } Tip("Afficher PSNR/SSIM/MSE");
+            if(ImGui::Button(T("Reset frame","Reset frame"))){ frame1_idx=frame2_idx=0; updateFrame(); } Tip(T("Revenir au début","Go to beginning")); ImGui::SameLine();
+            if(ImGui::Button(T("Reset zoom","Reset zoom"))){ zoom_l=zoom_r=1.f; center_l=center_r={.5f,.5f}; } Tip(T("Réinitialiser zoom/pan","Reset zoom/pan")); ImGui::SameLine();
+            if(ImGui::Button(zoom_linked ? "Link Zoom: ON" : "Link Zoom: OFF")) { zoom_linked = !zoom_linked; saveIni(); } Tip(T("Lier Zoom et Panoramique","Link Zoom and Pan")); ImGui::SameLine();
+
+            if(ImGui::Button(metrics_on ? T("Métriques: ON","Metrics: ON") : T("Métriques: OFF","Metrics: OFF"))){ metrics_on=!metrics_on; saveIni(); } Tip(T("Afficher PSNR/SSIM/MSE","Show PSNR/SSIM/MSE"));
 
             if(view_mode==VM_OVERLAY || view_mode==VM_BLINK){
                 ImGui::SameLine(); ImGui::Text("Intensity"); ImGui::SameLine(); ImGui::SetNextItemWidth(180);
-                ImGui::SliderFloat("##Intensity",&effect_intensity,0.f,1.f); Tip("0 = L, 1 = R (Overlay) | Durée blink");
+                ImGui::SliderFloat("##Intensity",&effect_intensity,0.f,1.f); Tip(T("0 = L, 1 = R (Overlay) | Durée blink","0 = L, 1 = R (Overlay) | Blink duration"));
             }
 
             ImGui::Dummy(ImVec2(0,10));
@@ -1595,15 +1608,15 @@ int main(){
                 // TOOLTIPS METRIQUES SEPARES
                 if(ImGui::IsItemHovered()) {
                     ImGui::BeginTooltip();
-                    ImGui::Text("- PSNR (Peak Signal-to-Noise Ratio) : Mesure la fidélité (>40dB = Excellent).");
-                    ImGui::Text("- SSIM (Structural Similarity) : Mesure la similarité visuelle (1.0 = Identique).");
-                    ImGui::Text("- MSE (Mean Squared Error) : Moyenne des erreurs au carré (Plus c'est bas, mieux c'est).");
+                    ImGui::Text(T("- PSNR (Peak Signal-to-Noise Ratio) : Mesure la fidélité (>40dB = Excellent).","- PSNR (Peak Signal-to-Noise Ratio): Measures fidelity (>40dB = Excellent)."));
+                    ImGui::Text(T("- SSIM (Structural Similarity) : Mesure la similarité visuelle (1.0 = Identique).","- SSIM (Structural Similarity): Measures visual similarity (1.0 = Identical)."));
+                    ImGui::Text(T("- MSE (Mean Squared Error) : Moyenne des erreurs au carré (Plus c'est bas, mieux c'est).","- MSE (Mean Squared Error): Average of squared errors (lower is better)."));
                     ImGui::EndTooltip();
                 }
 
                 float w = 1120.0f, h = 42.0f, xpad = std::max(0.0f, (ImGui::GetContentRegionAvail().x - w) * 0.5f);
-                ImGui::Dummy(ImVec2(xpad, 0)); ImGui::SameLine(); if(!psnrHist.empty()) ImGui::PlotLines("PSNR",psnrHist.data(),(int)psnrHist.size(),0,nullptr,0,60,ImVec2(w,h)); Tip("Graphique PSNR");
-                ImGui::Dummy(ImVec2(xpad, 0)); ImGui::SameLine(); if(!ssimHist.empty()) ImGui::PlotLines("SSIM",ssimHist.data(),(int)ssimHist.size(),0,nullptr,0,1,ImVec2(w,h)); Tip("Graphique SSIM");
+                ImGui::Dummy(ImVec2(xpad, 0)); ImGui::SameLine(); if(!psnrHist.empty()) ImGui::PlotLines("PSNR",psnrHist.data(),(int)psnrHist.size(),0,nullptr,0,60,ImVec2(w,h)); Tip(T("Graphique PSNR","PSNR graph"));
+                ImGui::Dummy(ImVec2(xpad, 0)); ImGui::SameLine(); if(!ssimHist.empty()) ImGui::PlotLines("SSIM",ssimHist.data(),(int)ssimHist.size(),0,nullptr,0,1,ImVec2(w,h)); Tip(T("Graphique SSIM","SSIM graph"));
             }
 
             // INFO FOOTER
@@ -1673,7 +1686,7 @@ int main(){
 
         if (show_rebinding) {
             ImGui::SetNextWindowSize(ImVec2(560, 0), ImGuiCond_FirstUseEver);
-            if (ImGui::Begin("Raccourcis clavier", &show_rebinding, ImGuiWindowFlags_AlwaysAutoResize)) {
+            if (ImGui::Begin(T("Raccourcis clavier","Keyboard Shortcuts"), &show_rebinding, ImGuiWindowFlags_AlwaysAutoResize)) {
                 static int editIdx = -1;
                 if (ImGui::BeginTable("tbl_keys", 2, ImGuiTableFlags_SizingStretchProp)) {
                     for (int i = 0; i < (int)g_keys.size(); ++i) {
@@ -1685,7 +1698,7 @@ int main(){
                     }
                     ImGui::EndTable();
                 }
-                if (ImGui::Button("Fermer")) show_rebinding = false;
+                if (ImGui::Button(T("Fermer","Close"))) show_rebinding = false;
                 if (editIdx >= 0) {
                     for (int k = ImGuiKey_NamedKey_BEGIN; k < ImGuiKey_NamedKey_END; ++k) {
                         if (ImGui::IsKeyPressed((ImGuiKey)k)) { g_keys[editIdx].key=(ImGuiKey)k; editIdx=-1; break; }
