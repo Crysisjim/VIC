@@ -62,7 +62,10 @@ A high-performance native C++ tool for comparing two videos or images side-by-si
 1. Download `VIC_Portable_v2.1.zip` from [Releases](https://github.com/Crysisjim/VIC/releases)
 2. Extract anywhere
 3. Run `VIC.exe`
-4. Drag & drop two videos/images onto the left and right halves — or use **File → Media 1 / Media 2**
+4. **Drag & drop** your files directly onto the window:
+   - Drop on the **left half** → Media 1 | Drop on the **right half** → Media 2
+   - Drop **two files at once** → both load automatically
+   - Or use **File → Media 1… / Media 2…** for a file picker
 
 > No installation required. No Python. No runtime dependencies beyond what's bundled.
 
@@ -189,7 +192,10 @@ Outil natif C++ haute performance pour comparer deux vidéos ou images côte à 
 1. Télécharger `VIC_Portable_v2.1.zip` depuis les [Releases](https://github.com/Crysisjim/VIC/releases)
 2. Extraire n'importe où
 3. Lancer `VIC.exe`
-4. Glisser-déposer deux vidéos/images sur les moitiés gauche et droite — ou utiliser **Fichier → Média 1 / Média 2**
+4. **Glisser-déposer** vos fichiers directement sur la fenêtre :
+   - Sur la **moitié gauche** → Média 1 | Sur la **moitié droite** → Média 2
+   - **Deux fichiers simultanément** → les deux se chargent automatiquement
+   - Ou utiliser **Fichier → Média 1… / Média 2…** pour un sélecteur de fichier
 
 > Aucune installation requise. Pas de Python. Pas de dépendances runtime au-delà de ce qui est inclus.
 
